@@ -1,0 +1,35 @@
+# Dependencies (including the voice agent)
+node_modules/
+
+# Local environment files and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.npmrc
+.netrc
+.pypirc
+
+# Build output and caches
+.next/
+out/
+dist/
+build/
+.vercel/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# Test output can include screenshots, recordings, and request data
+coverage/
+playwright-report/
+playwright/.cache/
+test-results/
+
+# Local logs and OS files
+*.log
+.DS_Store

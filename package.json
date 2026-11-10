@@ -1,0 +1,30 @@
+{
+  "name": "fluent-studio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "typecheck": "tsc --noEmit && npm --prefix agent run typecheck",
+    "agent:dev": "npm --prefix agent run dev",
+    "agent:start": "npm --prefix agent run start",
+    "test:integration": "playwright test",
+    "test:assessment": "node --test tests/assessment.test.mts tests/rehearsal.test.mts"
+  },
+  "dependencies": {
+    "gsap": "^3.15.1",
+    "livekit-client": "^2.23.0",
+    "livekit-server-sdk": "^2.19.2",
+    "next": "16.3.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

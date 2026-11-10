@@ -1,0 +1,18 @@
+/* Semantic action tokens. Brand primitives live in space.css; components consume
+   these roles so a theme change does not require editing individual pages. */
+:root {
+  --action-primary-fill: var(--brand-mint);
+  --action-primary-text: #14251f;
+  --action-secondary-text: var(--ink);
+  --action-secondary-border: #bdadcf88;
+  --action-ghost-text: #c7bfce;
+  --action-focus: var(--brand-mint);
+  --action-height: 54px;
+  --action-height-sm: 44px;
+  --action-padding: 26px;
+  --action-gap: 12px;
+  --action-font-size: 16px;
+  --action-font-size-sm: 14px;
+  --action-corner-cut: 14px;
+  --action-duration: 180ms;
+}

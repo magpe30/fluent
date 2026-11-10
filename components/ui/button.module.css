@@ -1,0 +1,95 @@
+.button {
+  --button-color: var(--action-primary-text);
+  --button-background: var(--action-primary-fill);
+  --button-border: transparent;
+  --cut: var(--action-corner-cut);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--action-gap);
+  min-height: var(--action-height);
+  max-width: 100%;
+  padding: 14px var(--action-padding);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--button-color);
+  font-family: var(--font);
+  font-size: var(--action-font-size);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--action-duration), opacity var(--action-duration);
+}
+
+/* Only the decorative layers are clipped: the native focus outline stays visible. */
+.button::before, .button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.button::before {
+  background: var(--button-background);
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
+  transition: filter var(--action-duration);
+}
+/* An even-odd polygon draws a real hollow outline, including both diagonal edges.
+   Its transparent center lets the page texture show through secondary buttons. */
+.button::after {
+  background: var(--button-border);
+  clip-path: polygon(evenodd,
+    var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut), var(--cut) 0,
+    calc(var(--cut) + .414px) 1px, 1px calc(var(--cut) + .414px), 1px calc(100% - 1px), calc(100% - var(--cut) - .414px) calc(100% - 1px), calc(100% - 1px) calc(100% - var(--cut) - .414px), calc(100% - 1px) 1px, calc(var(--cut) + .414px) 1px, var(--cut) 0);
+}
+.button[data-variant="secondary"] {
+  --button-color: var(--action-secondary-text);
+  --button-background: transparent;
+  --button-border: var(--action-secondary-border);
+}
+.button[data-variant="ghost"] {
+  --button-color: var(--action-ghost-text);
+  --button-background: transparent;
+  --button-border: transparent;
+  padding-inline: 0;
+  font-weight: 500;
+  text-underline-offset: 5px;
+}
+.button[data-size="sm"] {
+  min-height: var(--action-height-sm);
+  padding-block: 10px;
+  font-size: var(--action-font-size-sm);
+  --action-padding: 18px;
+  --cut: 10px;
+}
+.button[data-full-width] { width: 100%; }
+.button > svg { flex-shrink: 0; }
+.button:focus-visible { outline: 2px solid var(--action-focus); outline-offset: 5px; }
+.button:disabled { cursor: not-allowed; opacity: .45; }
+.button[aria-busy="true"] { cursor: progress; }
+.button[aria-pressed="true"] { --button-border: var(--action-focus); }
+@media (hover: hover) {
+  .button:hover:not(:disabled) { transform: translateY(-2px); }
+  .button:hover:not(:disabled)::before { filter: brightness(1.12); }
+  .button[data-variant="secondary"]:hover:not(:disabled)::before { background: color-mix(in srgb, var(--button-color) 8%, var(--button-background)); }
+  .button[data-variant="ghost"]:hover:not(:disabled) { text-decoration: underline; transform: none; }
+}
+.button:active:not(:disabled) { transform: translateY(0); }
+.spinner { width: 1em; height: 1em; flex-shrink: 0; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .button, .button::before { transition: none; }
+  .button:hover:not(:disabled) { transform: none; }
+  .spinner { animation: none; }
+}
+@media (forced-colors: active) {
+  .button { border: 1px solid ButtonText; color: ButtonText; }
+  .button::before, .button::after { display: none; }
+  .button:disabled { color: GrayText; border-color: GrayText; opacity: 1; }
+  .button:focus-visible { outline-color: Highlight; }
+}
