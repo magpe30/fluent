@@ -1,3 +1,8 @@
+// Bounds cover a full conversation plus a focused retry, while keeping model input finite.
+export const MAX_MEETING_TURNS = 600;
+export const MAX_MEETING_TURN_CHARS = 16_000;
+export const MAX_MEETING_TRANSCRIPT_CHARS = 80_000;
+export const MAX_MEETING_REQUEST_BYTES = 400_000;
 export const MEETING_PROMPT = "Your team wants to launch on Friday. You think another week would produce a better result. Explain your concern and propose a solution.";
 export const OPENING_QUESTION = "We’re aiming to launch on Friday. What’s your concern about the timeline?";
 export type MeetingTurn = { speaker: "You" | "Fluent"; text: string };
@@ -19,12 +24,16 @@ const text = (v: unknown, max = 500) => {
 };
 export function parseMeetingRequest(value: unknown): MeetingRequest {
   const raw = object(value);
+  let totalCharacters = 0;
   function turns(value: unknown): MeetingTurn[] {
-    if (!Array.isArray(value) || value.length > 60) throw Error("Invalid transcript");
+    if (!Array.isArray(value) || value.length > MAX_MEETING_TURNS) throw Error("Invalid transcript");
     return value.map(item => {
       const turn = object(item);
       if (turn.speaker !== "You" && turn.speaker !== "Fluent") throw Error("Invalid speaker");
-      return { speaker: turn.speaker, text: text(turn.text, 4000) };
+      const content = text(turn.text, MAX_MEETING_TURN_CHARS);
+      totalCharacters += content.length;
+      if (totalCharacters > MAX_MEETING_TRANSCRIPT_CHARS) throw Error("Transcript is too long");
+      return { speaker: turn.speaker, text: content };
     });
   }
   return { prompt: raw.prompt === undefined ? MEETING_PROMPT : text(raw.prompt, 4000), turns: turns(raw.turns), ...(raw.first ? { first: turns(raw.first) } : {}) };

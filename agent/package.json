@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "node --env-file=../.env scripts/dev.mjs",
     "start": "node --env-file=../.env src/main.ts start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:conversation": "node --env-file-if-exists=../.env --test tests/conversation.test.ts"
   },
   "dependencies": {
     "@livekit/agents": "^1.9.4",

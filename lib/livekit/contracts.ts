@@ -1,5 +1,12 @@
 export const AGENT_NAME = "fluent-coach";
-export const MAX_SESSION_SECONDS = 10 * 60;
+export const MAX_SESSION_SECONDS = 15 * 60;
+export const RETRY_SESSION_SECONDS = 45;
+export const SESSION_END_TOPIC = "fluent.session.ended";
+export const SESSION_CLEANUP_SECONDS = 10;
+
+export function sessionDuration(options: Pick<ConversationOptions, "scenario" | "retry">) {
+  return options.scenario && options.retry ? RETRY_SESSION_SECONDS : MAX_SESSION_SECONDS;
+}
 
 export type ConversationOptions = {
   prompt: string;

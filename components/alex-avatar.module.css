@@ -1,0 +1,57 @@
+.avatar {
+  width: 96px;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  position: relative;
+  --look: 0;
+  --head-tilt: -4deg;
+  --blink: 1;
+  --mouth-open: .5;
+}
+.avatar[data-size="sm"] { width: 72px; }
+/* Depth is suggested by parallax, never a flat plane rotated around Y. */
+.head {
+  position: absolute;
+  inset: 5%;
+  transform: rotate(var(--head-tilt));
+}
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 45% 47% 43% 44%;
+  background: radial-gradient(ellipse at calc(30% - var(--look) * 8%) 20%, #f1dbff, #c3a5ef 42%, #946cc8 76%, #634686);
+  box-shadow: inset 2px 3px 6px #fff8, inset -5px -7px 10px #42275b44, 0 10px 24px #0b071b66;
+}
+.ears { position: absolute; inset: 0; transform: translateX(calc(var(--look) * -1px)); }
+.ears i { position: absolute; top: 43%; width: 16%; height: 24%; border-radius: 50%; background: linear-gradient(110deg, #cfb4ee, #9871c6); box-shadow: inset 2px 0 3px #f1dbff88; }
+.ears i:first-child { left: -6%; }
+.ears i:last-child { right: -6%; }
+.hair { position: absolute; inset: -6% -1% auto; height: 35%; transform: translateX(calc(var(--look) * 1.5px)) skewY(calc(var(--look) * -.5deg)); }
+.hair i { position: absolute; background: linear-gradient(145deg, #785482, #493451 65%, #302638); box-shadow: inset 1px 2px 2px #cba2d14d, 0 2px 2px #35243f22; }
+.hair i:nth-child(1) { width: 34%; height: 95%; left: 0; top: 20%; border-radius: 80% 15% 70% 20%; transform: rotate(-18deg); }
+.hair i:nth-child(2) { width: 66%; height: 100%; left: 13%; top: 0; border-radius: 85% 20% 70% 25%; transform: rotate(-12deg); }
+.hair i:nth-child(3) { width: 35%; height: 90%; right: 1%; top: 19%; border-radius: 20% 90% 20% 80%; transform: rotate(-12deg); }
+.features { position: absolute; inset: 0; transform: translateX(calc(var(--look) * 4px)) skewY(calc(var(--look) * .8deg)); }
+.eyes { position: absolute; top: 40%; left: 27%; right: 27%; height: 12%; display: flex; justify-content: space-between; }
+.eyes i { width: 15%; height: 100%; border-radius: 50%; background: #35243f; box-shadow: 0 1px 1px #fff5; transform: scaleY(var(--blink)); }
+.glasses { position: absolute; top: 31%; left: 12%; right: 12%; height: 29%; display: flex; justify-content: space-between; }
+.glasses i { position: relative; width: 43%; height: 100%; box-sizing: border-box; border: 2px solid #403147; border-radius: 38% 38% 44% 44%; background: linear-gradient(135deg, #fff2, transparent 55%); box-shadow: 0 1px 1px #fff4, inset 0 1px 1px #fff3; }
+.glasses::before { content: ""; position: absolute; left: 41%; right: 41%; top: 33%; height: 20%; border-top: 2px solid #403147; border-radius: 50%; }
+.glasses::after { content: ""; position: absolute; left: -8%; right: -8%; top: 29%; height: 2px; background: linear-gradient(to right, #403147 0 8%, transparent 8% 92%, #403147 92%); }
+.nose { position: absolute; top: 49%; left: 46%; width: 9%; height: 12%; border-radius: 45%; background: linear-gradient(115deg, #dcc0f4, #b28bdd); box-shadow: 1px 1px 2px #63468644; transform: translateX(calc(var(--look) * 1px)); }
+.cheeks { position: absolute; top: 59%; left: 18%; right: 18%; display: flex; justify-content: space-between; }
+.cheeks i { width: 22%; height: 7px; border-radius: 50%; background: #e89dd1; opacity: .6; filter: blur(2px); }
+.mouth { position: absolute; left: 39%; top: 63%; width: 22%; height: 13%; border: 0 solid #35243f; border-bottom-width: 3px; border-radius: 0 0 50% 50%; }
+
+.avatar[data-state="speaking"] .mouth {
+  border: 0;
+  border-radius: 45%;
+  background: #35243f;
+  transform: scaleY(var(--mouth-open));
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .head { transform: rotate(-4deg); }
+  .features, .hair, .ears, .nose, .eyes i { transform: none; }
+  .avatar[data-state="speaking"] .mouth { transform: scaleY(.5); }
+}

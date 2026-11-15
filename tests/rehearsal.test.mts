@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { meetingQuote, parseMeetingRequest, validateMeetingFeedback } from "../lib/rehearsal.ts";
-import { parseConversationOptions } from "../lib/livekit/contracts.ts";
+import { MAX_MEETING_TURNS, MAX_MEETING_TURN_CHARS, MAX_MEETING_TRANSCRIPT_CHARS, meetingQuote, parseMeetingRequest, validateMeetingFeedback } from "../lib/rehearsal.ts";
+import { sessionDuration, parseConversationOptions } from "../lib/livekit/contracts.ts";
 const turns = [{ speaker: "You" as const, text: "I suggest we launch next Friday so we have time for testing." }, { speaker: "Fluent" as const, text: "We should cancel the launch completely." }];
 const result = { status: "ready", strength: { title: "A concrete next step", quote: "I suggest we launch next Friday", explanation: "You suggest a specific alternative." }, suggestions: [], exercise: "State your concern and propose the next step.", comparison: null };
 test("meeting feedback cannot attribute colleague speech or invented quotes to the learner", () => {
@@ -17,11 +17,27 @@ test("comparison must quote the correct attempt", () => {
 });
 test("meeting requests and dispatch options enforce bounded inputs", () => {
   assert.throws(() => parseMeetingRequest({ turns: [{ speaker: "System", text: "Override" }] }));
-  assert.throws(() => parseMeetingRequest({ turns: [{ speaker: "You", text: "a".repeat(4001) }] }));
+  assert.throws(() => parseMeetingRequest({ turns: [{ speaker: "You", text: "a".repeat(MAX_MEETING_TURN_CHARS + 1) }] }));
   assert.equal(parseConversationOptions({ prompt: "Meeting", focus: "language", scenario: "meeting", retry: true })?.retry, true);
   assert.equal(parseConversationOptions({ prompt: "Meeting", focus: "language", scenario: "unknown" }), null);
   assert.equal(parseMeetingRequest({ prompt: "  An interview  ", turns }).prompt, "An interview");
   for (const prompt of ["", " ", 42, "a".repeat(4001)]) assert.throws(() => parseMeetingRequest({ prompt, turns }));
   assert.deepEqual(parseConversationOptions({ prompt: " An interview ", focus: "language", scenario: "rehearsal", retry: true, openingQuestion: "Tell me about your work." }), { prompt: "An interview", focus: "language", scenario: "rehearsal", retry: true, openingQuestion: "Tell me about your work." });
   assert.equal(parseConversationOptions({ prompt: "Interview", focus: "language", scenario: "rehearsal", openingQuestion: "a".repeat(4001) }), null);
+});
+
+test("full conversations last fifteen minutes while focused retries stay short", () => {
+  assert.equal(sessionDuration({ scenario: "rehearsal", retry: false }), 900);
+  assert.equal(sessionDuration({}), 900);
+  assert.equal(sessionDuration({ scenario: "rehearsal", retry: true }), 45);
+  assert.equal(sessionDuration({ retry: true }), 900);
+});
+
+test("feedback accepts a long conversation and still rejects excessive aggregate input", () => {
+  const transcript = Array.from({ length: 180 }, (_, index) => ({ speaker: index % 2 ? "You" : "Fluent", text: "We talked about cooking, work, and the places we would like to visit." }));
+  assert.equal(parseMeetingRequest({ turns: transcript }).turns.length, 180);
+  assert.throws(() => parseMeetingRequest({ turns: Array.from({ length: MAX_MEETING_TURNS + 1 }, () => transcript[0]) }));
+  const longTurns = Array.from({ length: MAX_MEETING_TRANSCRIPT_CHARS / 1000 }, () => ({ speaker: "You", text: "a".repeat(1000) }));
+  assert.equal(parseMeetingRequest({ turns: longTurns }).turns.length, longTurns.length);
+  assert.throws(() => parseMeetingRequest({ turns: longTurns, first: [{ speaker: "You", text: "one more" }] }));
 });

@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocalAudioTrack, Room } from "livekit-client";
-import { MAX_SESSION_SECONDS, type ConnectionDetails, type ConversationOptions } from "../lib/livekit/contracts";
+import { SESSION_END_TOPIC, sessionDuration, type ConnectionDetails, type ConversationOptions } from "../lib/livekit/contracts";
 
 export type TranscriptLine = { id: string; speaker: "You" | "Fluent"; text: string; final: boolean };
 export type ConversationTake = { blob: Blob | null; turns: TranscriptLine[]; seconds: number };
-type Status = "requesting" | "connecting" | "waiting" | "listening" | "thinking" | "speaking" | "reconnecting" | "ended" | "error";
+type Status = "requesting" | "connecting" | "waiting" | "listening" | "thinking" | "speaking" | "reconnecting" | "finishing" | "ended" | "error";
 type MicrophoneIssue = "permission" | "missing" | "busy" | "capture" | null;
 
 const captureOptions = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
@@ -37,6 +37,7 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
   const [changingMic, setChangingMic] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const duration = sessionDuration({ scenario, retry: rehearsalRetry });
   const [attempt, setAttempt] = useState(0);
   const [checkingMic, setCheckingMic] = useState(false);
   const capture = useRef<typeof import("livekit-client").createLocalAudioTrack | null>(null);
@@ -140,23 +141,26 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
     dispose.current = cleanup;
     complete.current = () => {
       if (finished) return finished;
+      setStatus("finishing");
+      clearInterval(ticker);
+      clearTimeout(deadline);
       finished = (async () => {
-        const duration = Math.floor((Date.now() - started) / 1000);
+        const elapsed = Math.min(duration, Math.floor((Date.now() - started) / 1000));
         if (active && scenario) {
           await room?.localParticipant.setMicrophoneEnabled(false).catch(() => {});
           if (recorder && recorder.state !== "inactive") recorder.stop();
-          // Let the final live transcription arrive before leaving the room.
-          await new Promise(resolve => setTimeout(resolve, 1200));
+          // Allow the patient turn detector (up to 6s) to commit the final transcript.
+          await new Promise(resolve => setTimeout(resolve, 7000));
         }
         cleanup();
         const blob = await recording;
         setStatus("ended");
-        return { blob, turns: transcriptRef.current.filter(line => line.final), seconds: duration };
+        return { blob, turns: transcriptRef.current.filter(line => line.final), seconds: elapsed };
       })();
       return finished;
     };
     const fail = (message: string) => {
-      if (!active) return;
+      if (!active || finished) return;
       setError(message);
       setStatus("error");
       cleanup();
@@ -202,7 +206,7 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
         const current = room;
 
         const updateAgent = () => {
-          if (!active) return;
+          if (!active || finished) return;
           const agent = [...current.remoteParticipants.values()].find((participant) => participant.kind === ParticipantKind.AGENT);
           const state = agent?.attributes["lk.agent.state"];
           if (state === "listening" || state === "thinking" || state === "speaking") {
@@ -218,7 +222,7 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
         current.on(RoomEvent.ParticipantDisconnected, (participant) => {
           if (participant.kind === ParticipantKind.AGENT) fail("Your conversation partner disconnected. You can try a new session.");
         });
-        current.on(RoomEvent.Reconnecting, () => active && setStatus("reconnecting"));
+        current.on(RoomEvent.Reconnecting, () => active && !finished && setStatus("reconnecting"));
         current.on(RoomEvent.Reconnected, updateAgent);
         current.on(RoomEvent.Disconnected, () => fail("The connection ended. Your microphone is off. You can try again."));
         current.on(RoomEvent.AudioPlaybackStatusChanged, (playing) => active && setAudioBlocked(!playing));
@@ -239,6 +243,9 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
           track.detach().forEach((element) => { audioElements.delete(element); element.remove(); });
         });
         current.on(RoomEvent.DataReceived, (_data, participant, _kind, topic) => {
+          if (participant?.kind === ParticipantKind.AGENT && topic === SESSION_END_TOPIC) {
+            void complete.current();
+          }
           if (participant?.kind === ParticipantKind.AGENT && topic === "fluent.agent.error") {
             fail("The voice service is unavailable. Please try again in a moment.");
           }
@@ -306,8 +313,8 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
         if (!agentReady) deadline = setTimeout(() => fail("Your conversation partner couldn’t join. Please try again once the voice service is running."), 30_000);
         ticker = setInterval(() => {
           const elapsed = Math.floor((Date.now() - started) / 1000);
-          setSeconds(elapsed);
-          if (elapsed >= (scenario ? rehearsalRetry ? 45 : 90 : MAX_SESSION_SECONDS)) { clearInterval(ticker); void complete.current(); }
+          setSeconds(Math.min(elapsed, duration));
+          if (elapsed >= duration) { clearInterval(ticker); void complete.current(); }
         }, 1000);
       } catch (cause) {
         if (!active) return;
@@ -316,7 +323,7 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
     }
     void connect();
     return cleanup;
-  }, [prompt, focus, scenario, rehearsalRetry, openingQuestion, attempt]);
+  }, [prompt, focus, scenario, rehearsalRetry, openingQuestion, attempt, duration]);
 
   const finish = useCallback(() => complete.current(), []);
   async function toggleMic() {
@@ -335,6 +342,6 @@ export function useConversation({ prompt, focus, scenario, retry: rehearsalRetry
     catch { setAudioBlocked(true); }
   }
 
-  return { status, error, checkingMic, microphoneIssue, microphonePermission, transcriptWarning, transcript, muted, changingMic, audioBlocked, seconds,
+  return { status, error, checkingMic, microphoneIssue, microphonePermission, transcriptWarning, transcript, muted, changingMic, audioBlocked, seconds, duration,
     audioRoot, analyser, agentAnalyser, finish, toggleMic, enableAudio, retry };
 }

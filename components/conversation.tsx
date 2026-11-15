@@ -20,7 +20,7 @@ export function Conversation({ prompt, focus, onBack }: ConversationOptions & { 
     requesting: "Allow microphone access in your browser to begin…",
     connecting: "Connecting your microphone…", waiting: "Waiting for your conversation partner…",
     listening: "Listening · take your time", thinking: "Thinking…", speaking: "Fluent is speaking · you can interrupt",
-    reconnecting: "Reconnecting…", ended: "Session ended · microphone is off", error: "Session stopped · microphone is off",
+    reconnecting: "Reconnecting…", finishing: "Finishing · microphone is off", ended: "Session ended · microphone is off", error: "Session stopped · microphone is off",
   };
 
   useEffect(() => { title.current?.focus(); }, []);

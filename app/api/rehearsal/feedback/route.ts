@@ -1,4 +1,4 @@
-import { parseMeetingRequest, type MeetingFeedback } from "../../../../lib/rehearsal";
+import { MAX_MEETING_REQUEST_BYTES, parseMeetingRequest, type MeetingFeedback } from "../../../../lib/rehearsal";
 import { runAssessmentWorker } from "../../../../lib/assessment/worker";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const reader = request.body?.getReader();
     if (!reader) return json({ error: "No transcript received." }, 400);
     const chunks: Uint8Array[] = []; let size = 0;
-    while (true) { const { value, done } = await reader.read(); if (done) break; size += value.length; if (size > 50_000) { await reader.cancel(); return json({ error: "The transcript is too long." }, 413); } chunks.push(value); }
+    while (true) { const { value, done } = await reader.read(); if (done) break; size += value.length; if (size > MAX_MEETING_REQUEST_BYTES) { await reader.cancel(); return json({ error: "The transcript is too long." }, 413); } chunks.push(value); }
     input = parseMeetingRequest(JSON.parse(Buffer.concat(chunks).toString("utf8")));
   } catch { return json({ error: "The transcript couldn’t be read." }, 400); }
   if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET) return json({ error: "The feedback service isn’t configured yet." }, 503);

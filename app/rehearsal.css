@@ -253,3 +253,11 @@
   .live-meta { display: grid; grid-template-columns: 1fr auto; text-align: left; }
   .live-meta .live-microphone { grid-row: 2; grid-column: 1 / -1; justify-self: center; }
 }
+
+.alex-introduction { display: flex; align-items: center; gap: 18px; margin-top: 32px; }
+.alex-introduction h2 { font-family: var(--r-serif); font-size: 30px; font-weight: 400; }
+.alex-introduction p { color: var(--r-muted); font-size: 16px; line-height: 1.5; margin-top: 4px; }
+.conversation-invitation { max-width: 690px; margin-top: 16px; color: var(--r-muted); font-size: 17px; line-height: 1.7; }
+.live-companion { display: flex; justify-content: center; margin-top: 28px; }
+.live-companion + .live-caption { padding-top: 12px; }
+.session-wrap-up { margin: 16px auto 0; max-width: 520px; font-size: 16px; line-height: 1.6; color: var(--brand-mint); }

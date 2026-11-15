@@ -48,6 +48,9 @@ test("custom scenarios remain editable and start only after explicit microphone 
   await page.getByRole("button", { name: "Prepare conversation" }).click();
   await expect(page.locator(".scenario-preview")).toContainText(prompt);
   await expect(page.getByText("Your scene is set · Microphone off")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Meet Alex", exact: true })).toBeVisible();
+  await expect(page.getByText("Your AI conversation partner", { exact: true })).toBeVisible();
+  await expect(page.locator(".conversation-invitation")).toContainText("15 minutes");
   expect(await page.evaluate(() => window.__micCalls)).toBe(0);
   expect(options).toBeUndefined();
   await page.getByRole("button", { name: "Edit scenario" }).click();
@@ -57,6 +60,7 @@ test("custom scenarios remain editable and start only after explicit microphone 
   await page.screenshot({ path: test.info().outputPath("prepare-desktop.png"), fullPage: true });
   await page.getByRole("button", { name: "Start conversation", exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.__micCalls)).toBe(1);
+  await expect(page.locator(".live-meta")).toContainText("00:00 / 15:00");
   await expect(page.getByRole("status").filter({ hasText: "Allow microphone access" })).toBeVisible();
   expect(options).toBeUndefined();
   await page.evaluate(() => window.__allowMic());
@@ -265,7 +269,7 @@ test("failed live connection is recoverable and never shows sample feedback", as
 test("feedback endpoint rejects foreign origins and invalid transcripts", async ({ request, baseURL }) => {
   expect((await request.post("/api/rehearsal/feedback", { headers: { origin: "https://example.com" }, data: { turns: [] } })).status()).toBe(403);
   expect((await request.post("/api/rehearsal/feedback", { headers: { origin: baseURL }, data: { turns: [{ speaker: "Unknown", text: "Hello" }] } })).status()).toBe(400);
-  expect((await request.post("/api/rehearsal/feedback", { headers: { origin: baseURL }, data: { turns: "a".repeat(60_000) } })).status()).toBe(413);
+  expect((await request.post("/api/rehearsal/feedback", { headers: { origin: baseURL }, data: { turns: "a".repeat(400_001) } })).status()).toBe(413);
 });
 
 test("live meeting feedback is grounded in the learner and compares two takes", async ({ request, baseURL }) => {

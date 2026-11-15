@@ -10,7 +10,8 @@
     "agent:dev": "npm --prefix agent run dev",
     "agent:start": "npm --prefix agent run start",
     "test:integration": "playwright test",
-    "test:assessment": "node --test tests/assessment.test.mts tests/rehearsal.test.mts"
+    "test:assessment": "node --test tests/assessment.test.mts tests/rehearsal.test.mts",
+    "test:conversation": "npm --prefix agent run test:conversation"
   },
   "dependencies": {
     "gsap": "^3.15.1",

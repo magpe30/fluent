@@ -83,3 +83,20 @@ Use a full-width header with horizontal padding, rather than outer margins, to
 avoid an inset background panel. Page CSS owns height and content layout; the
 component owns stickiness, scroll detection and the backdrop. Set `sticky={false}`
 for the fixed-height homepage. Reduced motion removes the fade transition.
+
+## Alex avatar
+
+`AlexAvatar` in `components/alex-avatar.tsx` is a reusable decorative character
+with `idle`, `listening`, `thinking`, and `speaking` states and `sm` / `md` sizes.
+Pass the agent's audio analyser ref to drive speaking motion from audio energy.
+Without an analyser, speaking uses a decorative loop for the demo. Keep a visible
+AI label nearby; the avatar itself is hidden from assistive technology.
+
+The original CSS character retains its soft lavender face, swept hair and rounded
+rectangular glasses. Occasional glances simulate depth by shifting features,
+hair, ears and lighting by different amounts across an unchanged silhouette.
+This is an illustrated depth effect, not a WebGL model or a rotated flat plane.
+Expression tilts, blinking and audio-driven mouth motion remain independent.
+Animation is capped at 30 fps and pauses while hidden or offscreen. Reduced
+motion shows a still pose. No canvas, model or rendering library is required.
+Page styles own placement; the component's CSS module owns the character.
