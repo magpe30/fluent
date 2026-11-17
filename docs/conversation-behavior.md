@@ -106,6 +106,11 @@ removes facial animation.
 
 ## Next implementation steps
 
-Multilingual recognition, personal vocabulary feedback, and cross-session storage
-are separate upcoming changes. STT is still configured for English, so do not yet
+Multilingual recognition and cross-session storage remain upcoming changes.
+Vocabulary feedback now offers up to three expressions based on learner quotes,
+with meanings, example sentences and optional self-guided practice prompts.
+Validation rejects unsupported quotes, duplicate expressions, and examples that
+do not contain the proposed phrase. Meanings and usefulness still need real
+learner evaluation; structural checks cannot establish semantic accuracy.
+STT is still configured for English, so do not yet
 rely on recognizing words spoken in another language.

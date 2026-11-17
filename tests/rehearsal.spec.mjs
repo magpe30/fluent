@@ -187,6 +187,23 @@ for (const [name, message] of [["NotFoundError", "No microphone was found"], ["N
   });
 }
 
+async function checkVocabulary(page, screenshotName) {
+  const section = page.getByRole("region", { name: "Words for next time." });
+  await expect(section).toBeVisible();
+  await expect(section.getByRole("article")).toHaveCount(2);
+  await expect(section.getByRole("heading", { name: "push back", exact: true })).toBeVisible();
+  await expect(section).toContainText("I suggest we launch next Friday");
+  await expect(section).toContainText("Could we push back the launch to next Friday?");
+  const practice = section.locator("details").first();
+  await expect(practice).not.toHaveAttribute("open", "");
+  await practice.locator("summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(practice).toHaveAttribute("open", "");
+  await expect(practice).toContainText("Suggest moving a deadline");
+  await section.screenshot({ path: test.info().outputPath(screenshotName) });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+}
+
 test("demo completes the meeting, feedback, retry and comparison without microphone or API calls", async ({ page }) => {
   let requests = 0;
   await page.route("**/api/**", route => { requests++; return route.abort(); });
@@ -209,6 +226,7 @@ test("demo completes the meeting, feedback, retry and comparison without microph
   await expect(page.locator(".rehearsal-content")).toHaveCSS("opacity", "1");
   await page.screenshot({ path: test.info().outputPath("feedback-desktop.png"), fullPage: true });
   await checkScrolledHeader(page, "header-scrolled-desktop.png");
+  await checkVocabulary(page, "vocabulary-desktop.png");
   await page.getByRole("button", { name: "Try that answer again" }).click();
   await expect(page.getByText("YOUR FOCUS", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -218,6 +236,7 @@ test("demo completes the meeting, feedback, retry and comparison without microph
   await page.getByRole("button", { name: "See sample feedback" }).click();
   await expect(page.getByText("HEAR THE DIFFERENCE", { exact: true })).toBeVisible();
   await expect(page.getByText('You used “agree” directly after “I” in your second answer.')).toBeVisible();
+  await expect(page.getByRole("region", { name: "Words for next time." })).toHaveCount(0);
   await page.getByRole("button", { name: "Finish practice" }).click();
   await expect(page.getByRole("heading", { name: "Your next conversation. A little more room." })).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -242,6 +261,7 @@ test("mobile and reduced motion preserve the full demo flow", async ({ page }) =
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: test.info().outputPath("feedback-mobile.png"), fullPage: true });
   await checkScrolledHeader(page, "header-scrolled-mobile.png");
+  await checkVocabulary(page, "vocabulary-mobile.png");
   await page.getByRole("button", { name: "Try that answer again" }).click();
   await page.getByRole("button", { name: "Start second take" }).click();
   await page.getByRole("button", { name: "See sample feedback" }).click();
@@ -284,6 +304,14 @@ test("live meeting feedback is grounded in the learner and compares two takes", 
   expect(feedback.status).toBe("ready");
   expect(turns[1].text.toLowerCase()).toContain(feedback.strength.quote.toLowerCase());
   expect(feedback.suggestions.length).toBeLessThanOrEqual(2);
+  expect(Array.isArray(feedback.vocabulary)).toBe(true);
+  expect(feedback.vocabulary.length).toBeLessThanOrEqual(3);
+  for (const item of feedback.vocabulary) {
+    expect(turns[1].text.toLowerCase()).toContain(item.quote.toLowerCase());
+    expect(item.example.toLowerCase()).toContain(item.phrase.toLowerCase());
+    expect(item.meaning.trim()).not.toBe("");
+    expect(item.practice.trim()).not.toBe("");
+  }
   expect(feedback.exercise).not.toMatch(/Friday|deadline|launch/i);
   expect(feedback.exercise).not.toMatch(/(?:different|other|three|multiple) (?:professional )?scenarios/i);
 });
@@ -311,4 +339,24 @@ test("live rehearsal captures a real transcript, releases the mic and produces f
   await expect(page.getByText("SAMPLE FEEDBACK · SCRIPTED DEMO")).toHaveCount(0);
   await expect(page.locator(".rehearsal-content")).toHaveCSS("opacity", "1");
   await page.screenshot({ path: test.info().outputPath("live-feedback.png"), fullPage: true });
+});
+
+test("live vocabulary supports everyday word searches with learner evidence", async ({ request, baseURL }) => {
+  test.skip(process.env.MEETING_SMOKE !== "1", "Requires LiveKit Inference credentials and credits.");
+  test.setTimeout(100_000);
+  const turns = [
+    { speaker: "Fluent", text: "What do you do to relax after a busy day?" },
+    { speaker: "You", text: "I go for a walk after work. It helps me stop thinking about all the meetings. I cannot remember a natural expression for relaxing and not thinking about work." },
+  ];
+  const response = await request.post("/api/rehearsal/feedback", { headers: { origin: baseURL }, data: { prompt: "A friendly chat about my day", turns }, timeout: 85_000 });
+  expect(response.status(), await response.text()).toBe(200);
+  const feedback = await response.json();
+  expect(feedback.status).toBe("ready");
+  expect(feedback.vocabulary.length).toBeGreaterThan(0);
+  expect(feedback.vocabulary.length).toBeLessThanOrEqual(3);
+  for (const item of feedback.vocabulary) {
+    expect(turns[1].text.toLowerCase()).toContain(item.quote.toLowerCase());
+    expect(item.example.toLowerCase()).toContain(item.phrase.toLowerCase());
+  }
+  expect(feedback.exercise).not.toMatch(/Friday|deadline|launch/i);
 });

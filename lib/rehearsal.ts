@@ -6,10 +6,12 @@ export const MAX_MEETING_REQUEST_BYTES = 400_000;
 export const MEETING_PROMPT = "Your team wants to launch on Friday. You think another week would produce a better result. Explain your concern and propose a solution.";
 export const OPENING_QUESTION = "We’re aiming to launch on Friday. What’s your concern about the timeline?";
 export type MeetingTurn = { speaker: "You" | "Fluent"; text: string };
+export type VocabularyItem = { phrase: string; quote: string; meaning: string; example: string; practice: string };
 export type MeetingFeedback = {
   status: "ready" | "insufficient_evidence";
   strength: { title: string; quote: string; explanation: string } | null;
   suggestions: { category: "sentence_structure" | "word_usage"; kind: "correction" | "style"; quote: string; replacement: string; explanation: string }[];
+  vocabulary: VocabularyItem[];
   exercise: string;
   comparison: { before: string; after: string; observation: string } | null;
 };
@@ -38,7 +40,7 @@ export function parseMeetingRequest(value: unknown): MeetingRequest {
   }
   return { prompt: raw.prompt === undefined ? MEETING_PROMPT : text(raw.prompt, 4000), turns: turns(raw.turns), ...(raw.first ? { first: turns(raw.first) } : {}) };
 }
-export const insufficientMeeting = (): MeetingFeedback => ({ status: "insufficient_evidence", strength: null, suggestions: [], exercise: "Try answering the opening question again. Give your main point and one detail to help your partner understand.", comparison: null });
+export const insufficientMeeting = (): MeetingFeedback => ({ status: "insufficient_evidence", strength: null, suggestions: [], vocabulary: [], exercise: "Try answering the opening question again. Give your main point and one detail to help your partner understand.", comparison: null });
 
 // Quotes must come from the learner, never from the colleague or the model.
 export function meetingQuote(value: unknown, turns: MeetingTurn[]) {
@@ -54,6 +56,13 @@ export function meetingQuote(value: unknown, turns: MeetingTurn[]) {
   }
   throw Error("Quote is not in the learner’s transcript");
 }
+// Token matching avoids accepting a phrase inside an unrelated word (e.g. "act" in "actually").
+export function containsVocabularyPhrase(sentence: string, phrase: string) {
+  const tokens = (value: string) => value.normalize("NFKC").toLowerCase().replaceAll("’", "'").match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)*/gu) || [];
+  const source = tokens(sentence), wanted = tokens(phrase);
+  return wanted.length > 0 && source.some((_, i) => wanted.every((word, j) => word === source[i + j]));
+}
+
 export function validateMeetingFeedback(value: unknown, request: MeetingRequest): MeetingFeedback {
   const raw = object(value);
   if (raw.status === "insufficient_evidence") return insufficientMeeting();
@@ -65,10 +74,22 @@ export function validateMeetingFeedback(value: unknown, request: MeetingRequest)
     if (s.kind !== "correction" && s.kind !== "style") throw Error("Invalid suggestion");
     return { category: s.category, kind: s.kind, quote: meetingQuote(s.quote, request.turns), replacement: text(s.replacement, 400), explanation: text(s.explanation) } as MeetingFeedback["suggestions"][number];
   });
+  if (!Array.isArray(raw.vocabulary) || raw.vocabulary.length > 3) throw Error("Invalid vocabulary");
+  const seen = new Set<string>();
+  const vocabulary = raw.vocabulary.map(item => {
+    const v = object(item);
+    const phrase = text(v.phrase, 80);
+    const key = phrase.normalize("NFKC").toLowerCase().replaceAll("’", "'").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    if (!key || seen.has(key)) throw Error("Duplicate or empty vocabulary");
+    seen.add(key);
+    const example = text(v.example, 400);
+    if (!containsVocabularyPhrase(example, phrase)) throw Error("Example must use its expression");
+    return { phrase, quote: meetingQuote(v.quote, request.turns), meaning: text(v.meaning, 240), example, practice: text(v.practice, 240) };
+  });
   let comparison: MeetingFeedback["comparison"] = null;
   if (raw.comparison && request.first) {
     const c = object(raw.comparison);
     comparison = { before: meetingQuote(c.before, request.first), after: meetingQuote(c.after, request.turns), observation: text(c.observation) };
   }
-  return { status: "ready", strength: { title: text(strength.title, 100), quote: meetingQuote(strength.quote, request.turns), explanation: text(strength.explanation) }, suggestions, exercise: text(raw.exercise), comparison };
+  return { status: "ready", strength: { title: text(strength.title, 100), quote: meetingQuote(strength.quote, request.turns), explanation: text(strength.explanation) }, suggestions, vocabulary, exercise: text(raw.exercise), comparison };
 }

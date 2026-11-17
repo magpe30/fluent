@@ -100,3 +100,12 @@ Expression tilts, blinking and audio-driven mouth motion remain independent.
 Animation is capped at 30 fps and pauses while hidden or offscreen. Reduced
 motion shows a still pose. No canvas, model or rendering library is required.
 Page styles own placement; the component's CSS module owns the character.
+
+## Vocabulary feedback
+
+`VocabularyFeedback` renders the validated vocabulary list in the conversation
+reflection. Each row pairs the learner's source quote with an optional expression,
+meaning and clearly labelled example. A native disclosure offers a short spoken
+practice prompt, without activating a microphone or starting an AI request. Empty
+lists render nothing. It shares heading accents and page typography; its CSS
+module owns the responsive two-column-to-single-column layout.

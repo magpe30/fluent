@@ -7,6 +7,7 @@ import { Starfield } from "./starfield";
 import { PageLoader } from "./page-loader";
 import { Button } from "./ui/button";
 import { ScrollHeader } from "./ui/scroll-header";
+import { VocabularyFeedback } from "./vocabulary-feedback";
 import { AlexAvatar } from "./alex-avatar";
 import { MAX_SESSION_SECONDS } from "../lib/livekit/contracts";
 import { Icon } from "./icons";
@@ -187,6 +188,7 @@ export function Rehearsal() {
             {feedback.strength && <article className="rehearsal-strength"><span className="feedback-symbol">✳</span><div><span className="rehearsal-kicker">KEEP THIS</span><h2>{feedback.strength.title}</h2><blockquote>“{feedback.strength.quote}”</blockquote><p>{feedback.strength.explanation}</p></div></article>}
             <div className="rehearsal-suggestions">{feedback.suggestions.map((s, i) => <article className="rehearsal-suggestion" key={i}><div className="suggestion-heading"><span>{s.category === "sentence_structure" ? "SENTENCE STRUCTURE" : "WORD CHOICE"}</span><span className="suggestion-kind">{s.kind === "correction" ? "Correction" : "Optional phrasing"}</span></div><dl><dt>YOU SAID</dt><dd>“{s.quote}”</dd><dt>YOU COULD SAY</dt><dd>“{s.replacement}”</dd></dl><p>{s.explanation}</p></article>)}</div>
             {feedback.status === "ready" && !feedback.suggestions.length && <p className="rehearsal-fineprint">No specific sentence or word changes stood out in this take.</p>}
+            {feedback.status === "ready" && <VocabularyFeedback items={feedback.vocabulary}/> }
             {attempt > 0 && <div className="rehearsal-comparison"><span className="rehearsal-kicker">HEAR THE DIFFERENCE</span>{feedback.comparison ? <><div className="comparison-quotes"><blockquote><small>FIRST TAKE</small>“{feedback.comparison.before}”</blockquote><blockquote><small>SECOND TAKE</small>“{feedback.comparison.after}”</blockquote></div><p>{feedback.comparison.observation}</p></> : <p>Compare both takes in the transcripts. Which wording feels more natural to you?</p>}<div className="comparison-players"><TakeAudio take={takes[0]} label="First take"/><TakeAudio take={current} label="Second take"/></div></div>}
             {!attempt && <TakeAudio take={current} label="Replay your answers"/>}
             <div className="rehearsal-next"><span className="rehearsal-kicker">{attempt ? "TAKE IT INTO YOUR NEXT CONVERSATION" : "ONE THING TO TRY"}</span><p>{feedback.exercise}</p><div className="rehearsal-actions">{!attempt && <Button variant="primary" onClick={() => setPhase("retry")}>Try that answer again <Icon name="arrow" size={17}/></Button>}<Button variant={attempt ? "primary" : "secondary"} onClick={() => setPhase("done")}>Finish practice {attempt ? <Icon name="check" size={17}/> : null}</Button></div></div>

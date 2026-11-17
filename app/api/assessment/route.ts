@@ -14,7 +14,6 @@ export async function POST(request: Request) {
     return json({ error: "Recording feedback is available from the local Fluent app only." }, 403);
   }
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data")) return json({ error: "Send a recording for feedback." }, 415);
-  if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET) return json({ error: "Feedback isn’t configured yet. Check the LiveKit credentials on the server." }, 503);
   if (running) return json({ error: "Another recording is being analyzed. Please try again shortly." }, 429);
   if (Date.now() - windowStart >= 60_000) { windowStart = Date.now(); requests = 0; }
   if (++requests > 6) return json({ error: "Please wait a minute before requesting more feedback." }, 429);
@@ -40,6 +39,8 @@ export async function POST(request: Request) {
     }
     const bytes = new Uint8Array(await file.arrayBuffer());
     try { readWav(bytes); } catch { return json({ error: "This recording couldn’t be read. Try recording again, for up to two minutes." }, 400); }
+    // Validate the upload before checking the provider configuration.
+    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET) return json({ error: "Feedback isn’t configured yet. Check the LiveKit credentials on the server." }, 503);
     const result = await assessRecording(bytes, prompt, request.signal);
     return json(result);
   } catch (cause) {
